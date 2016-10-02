@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<head>
+  <title>
+    PEL Friend
+  </title>
+  <link rel="apple-touch-icon" sizes="180x180" href="favicons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="favicons/favicon-32x32.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="favicons/favicon-16x16.png" sizes="16x16">
+  <link rel="manifest" href="favicons/manifest.json">
+  <link rel="mask-icon" href="favicons/safari-pinned-tab.svg" color="#5bbad5">
+  <link rel="shortcut icon" href="favicons/favicon.ico">
+  <meta name="msapplication-config" content="favicons/browserconfig.xml">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.7/css/materialize.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+
+  <div id="app" class="container">
+    <div class="row">
+
+      <div class="col s12" style="text-align: center;">
+        <h1 style="margin-right: 100px;">
+          <img src="nerd-emoji-one.png" style="height: 100px;">
+          PEL Friend
+        </h1>
+        <h4>
+          A lightweight visualization for
+          <span style="white-space: nowrap;">
+            Power Equipment Lists
+          </span>
+        </h4>
+      </div>
+
+      <hr>
+
+      <div class="col s12">
+        <h3 class="padded-header">
+          Input:
+        </h3>
+      </div>
+
+      <div class="col s12">
+        <div class="card yellow lighten-4">
+          <div class="card-content">
+            <span class="card-title">
+              JSON that defines the PEL
+            </span>
+            <textarea v-model="pelRaw"
+              type="multiline"
+              class="yellow lighten-5"
+              style="font-family: Courier; height: 300px; width: 100%;">
+            </textarea>
+            <p style="text-align: center;">
+              Go ahead, edit me!
+            </p>
+          </div>
+          <div v-show="!pelIsGood" class="card-action yellow darken-1">
+            Something's wrong with the PEL JSON... fix it!
+          </div>
+        </div>
+      </div>
+
+      <div class="col s12">
+        <h3 class="padded-header">
+          Outputs:
+        </h3>
+      </div>
+
+      <div class="col s12 l6">
+        <div class="card green lighten-4">
+          <div class="card-content">
+            <span class="card-title">
+              Power surplus for each phase
+            </span>
+            <div style="height: 20px;">
+            </div>
+            <pel-phases-surplus :phase-powers="phasePowers">
+            </pel-phases-surplus>
+          </div>
+        </div>
+      </div>
+
+      <div class="col s12 l6">
+        <div class="card green lighten-4">
+          <div class="card-content">
+            <span class="card-title">
+              Power remaining after each phase
+            </span>
+            <div style="height: 20px;">
+            </div>
+            <pel-phases-remaining :phase-powers="phasePowers">
+            </pel-phases-remaining>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.7/js/materialize.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js" charset="utf-8"></script>
+<script src="https://unpkg.com/vue@2.0.1/dist/vue.js" charset="utf-8"></script>
+<script type="text/javascript">
+
+  var PelPhasesSurplus = {
+    props: [
+      'phasePowers'
+    ],
+    methods: {
+      getX: function (phaseIndex) {
+        return 100 + 80 * phaseIndex
+      },
+      getY: function (power) {
+        var phasePowers = this.phasePowers
+        var maxPower = _.max(phasePowers.map(function (phasePower) {
+          return phasePower.power
+        }))
+        return 195 - power * 190 / (1.1 * maxPower)
+      }
+    },
+    template: '\
+      <div style="text-align: center;">\
+        <svg style="height: 260px; width: 300px;">\
+          <line x1="80" x2="500" y1="200" y2="200" stroke="black"></line>\
+          <line x1="80" x2="80" y1="200" y2="5" stroke="black"></line>\
+          <text x="0" y="100" transform="translate(20 20) rotate(-90 0 100)">Watts</text>\
+          <g v-for="(phasePower, phaseIndex) in phasePowers">\
+            <text\
+              :x="getX(phaseIndex) - 15"\
+              y="250">\
+              {{ phasePower.phase.name }}\
+            </text>\
+            <text\
+              x="40"\
+              :y="getY(phasePower.power) + 5">\
+              {{ phasePower.power }}\
+            </text>\
+            <circle\
+              :cx="getX(phaseIndex)"\
+              :cy="getY(phasePower.power)"\
+              r="5"\
+              :data-value="phasePower.power">\
+            </circle>\
+            <line\
+              :x1="getX(phaseIndex)"\
+              :x2="getX(phaseIndex)"\
+              :y1="getY(phasePower.power)"\
+              y2="200"\
+              stroke="black"></line>\
+            <line\
+              :x1="getX(phaseIndex)"\
+              x2="80"\
+              :y1="getY(phasePower.power)"\
+              :y2="getY(phasePower.power)"\
+              stroke="black"></line>\
+          </g>\
+        </svg>\
+      </div>\
+    '
+  }
+
+  var PelPhasesRemaining = {
+    props: [
+      'phasePowers'
+    ],
+    methods: {
+      getX: function (phaseIndex) {
+        return 100 + 80 * phaseIndex
+      },
+      getY: function (power) {
+        var phasePowersRemaining = this.phasePowersRemaining
+        var maxPower = _.max(phasePowersRemaining.map(function (phasePowerRemaining) {
+          return phasePowerRemaining.power
+        }))
+        return 195 - power * 190 / (1.1 * maxPower)
+      }
+    },
+    computed: {
+      phasePowersRemaining: function () {
+        var phasePowersRemaining = []
+        var remaining = 0
+        this.phasePowers.forEach(function (phasePower) {
+          remaining += phasePower.power
+          phasePowersRemaining.push({
+            phase: phasePower.phase,
+            power: remaining
+          })
+        })
+        return phasePowersRemaining
+      }
+    },
+    template: '\
+      <div style="text-align: center;">\
+        <svg style="height: 260px; width: 300px;">\
+          <line x1="80" x2="500" y1="200" y2="200" stroke="black"></line>\
+          <line x1="80" x2="80" y1="200" y2="5" stroke="black"></line>\
+          <text x="0" y="100" transform="translate(20 20) rotate(-90 0 100)">Watts</text>\
+          <g v-for="(phasePowerRemaining, phaseIndex) in phasePowersRemaining">\
+            <text\
+              :x="getX(phaseIndex) - 15"\
+              y="250">\
+              {{ phasePowerRemaining.phase.name }}\
+            </text>\
+            <text\
+              x="40"\
+              :y="getY(phasePowerRemaining.power) + 5">\
+              {{ phasePowerRemaining.power }}\
+            </text>\
+            <circle\
+              :cx="getX(phaseIndex)"\
+              :cy="getY(phasePowerRemaining.power)"\
+              r="5"\
+              :data-value="phasePowerRemaining.power">\
+            </circle>\
+            <line\
+              :x1="getX(phaseIndex)"\
+              :x2="getX(phaseIndex)"\
+              :y1="getY(phasePowerRemaining.power)"\
+              y2="200"\
+              stroke="black"></line>\
+            <line\
+              :x1="getX(phaseIndex)"\
+              x2="80"\
+              :y1="getY(phasePowerRemaining.power)"\
+              :y2="getY(phasePowerRemaining.power)"\
+              stroke="black"></line>\
+          </g>\
+        </svg>\
+      </div>\
+    '
+  }
+
+  var initialPel = {
+    "components": [
+      {
+        "name": "High-gain antenna",
+        "modes": [
+          {
+            "name": "off",
+            "phases": [
+              "Early",
+              "Middle"
+            ],
+            "power": 0
+          },
+          {
+            "name": "on",
+            "phases": [
+              "Late"
+            ],
+            "power": -10
+          }
+        ]
+      },
+      {
+        "name": "Thrusters",
+        "modes": [
+          {
+            "name": "off",
+            "phases": [
+              "Late"
+            ],
+            "power": 0
+          },
+          {
+            "name": "on",
+            "phases": [
+              "Early",
+              "Middle"
+            ],
+            "power": -1
+          }
+        ]
+      },
+      {
+        "name": "Magnetometer",
+        "modes": [
+          {
+            "name": "off",
+            "phases": [
+              "Early"
+            ],
+            "power": 0
+          },
+          {
+            "name": "on",
+            "phases": [
+              "Middle",
+              "Late"
+            ],
+            "power": -2
+          }
+        ]
+      },
+      {
+        "name": "Radioisotope thermoelectric power supply",
+        "modes": [
+          {
+            "name": "on",
+            "phases": [
+              "Early",
+              "Middle",
+              "Late"
+            ],
+            "power": 15
+          }
+        ]
+      }
+    ],
+    "phases": [
+      {
+        "name": "Early",
+        "duration": 10
+      },
+      {
+        "name": "Middle",
+        "duration": 100
+      },
+      {
+        "name": "Late",
+        "duration": 200
+      }
+    ]
+  }
+
+  new Vue({
+    el: '#app',
+    data: {
+      pel: initialPel,
+      pelRaw: JSON.stringify(initialPel, null, '  ')
+    },
+    watch: {
+      pelRaw: function (pelRawValue) {
+        try {
+          this.pel = JSON.parse(pelRawValue)
+        } catch (error) {}
+      }
+    },
+    computed: {
+      pelIsGood: function () {
+        try {
+          JSON.parse(this.pelRaw)
+          return true
+        } catch (error) {
+          return false
+        }
+      },
+      phasePowers: function () {
+        var phasePowers = []
+        var pel = this.pel
+        pel.phases.forEach(function (phase) {
+          var power = 0
+          pel.components.forEach(function (component) {
+            component.modes.forEach(function (mode) {
+              if (mode.phases.indexOf(phase.name) !== -1) {
+                power += mode.power
+              }
+            })
+          })
+          power *= phase.duration
+          phasePowers.push({ phase: phase, power: power})
+        })
+        return phasePowers
+      }
+    },
+    components: {
+      'pel-phases-surplus': PelPhasesSurplus,
+      'pel-phases-remaining': PelPhasesRemaining
+    }
+  })
+
+</script>
+
+</body>
